@@ -65,9 +65,10 @@ with Session(engine) as session:
     pantry_cheddar = Pantry_item(item_id = 1, quantity = 3)
     pantry_bread = Pantry_item(item_id = 3, quantity = 24)
     pantry_spaghetti = Pantry_item(item_id = 5, quantity = 2)
-    pantry_pepper = Pantry_item(item_id = 7, quantity = 1)
+    pantry_pepper = Pantry_item(item_id = 7, quantity = 100)
+    pantry_salt = Pantry_item(item_id = 8, quantity = 100)
 
-    all_pantry_items = [pantry_bread, pantry_cheddar, pantry_spaghetti, ]
+    all_pantry_items = [pantry_bread, pantry_cheddar, pantry_spaghetti, pantry_salt, pantry_pepper]
 
     # ingredient items
     grilled_cheese_cheddar = Ingredient_item(item_id = 1, recipe_id = 1, quantity = 2)
@@ -75,15 +76,15 @@ with Session(engine) as session:
     grilled_cheese_bread = Ingredient_item(item_id = 3, recipe_id = 1, quantity = 2)
 
     cacio_e_pepe_spaghetti = Ingredient_item(item_id = 5, recipe_id = 2, quantity = 1)
-    cacio_e_pepe_pepper = Ingredient_item(item_id = 7, recipe_id = 2, quantity = 0)
+    cacio_e_pepe_pepper = Ingredient_item(item_id = 7, recipe_id = 2, quantity = 1)
     cacio_e_pepe_pecorino = Ingredient_item(item_id = 2, recipe_id = 2, quantity = 2)
 
     carbonara_spaghetti = Ingredient_item(item_id = 5, recipe_id = 3, quantity = 1)
     carbonara_egg = Ingredient_item(item_id = 12, recipe_id = 3, quantity = 4)
     carbonara_pecorino = Ingredient_item(item_id = 2, recipe_id = 3, quantity = 1)
     carbonara_pancetta = Ingredient_item(item_id = 11, recipe_id = 3, quantity = 1)
-    carbonara_salt = Ingredient_item(item_id = 8, recipe_id = 3, quantity = 0)
-    carbonara_pepper = Ingredient_item(item_id = 7, recipe_id = 3, quantity = 0)
+    carbonara_salt = Ingredient_item(item_id = 8, recipe_id = 3, quantity = 1)
+    carbonara_pepper = Ingredient_item(item_id = 7, recipe_id = 3, quantity = 1)
 
     tacos_tortilla = Ingredient_item(item_id = 23, recipe_id = 4, quantity = 6)
     tacos_tomato = Ingredient_item(item_id = 9, recipe_id = 4, quantity = 1)
@@ -96,7 +97,7 @@ with Session(engine) as session:
     salsa_tomatillo = Ingredient_item(item_id = 21, recipe_id = 5, quantity = 5)
     salsa_jalepeno = Ingredient_item(item_id = 22, recipe_id = 5, quantity = 3)
     salsa_cilantro = Ingredient_item(item_id = 20, recipe_id = 5, quantity = 1)
-    salsa_salt = Ingredient_item(item_id = 8, recipe_id = 5, quantity = 0)
+    salsa_salt = Ingredient_item(item_id = 8, recipe_id = 5, quantity = 1)
     salsa_lime = Ingredient_item(item_id = 19, recipe_id = 5, quantity = 2)
 
     fried_zuc_flowers_zuc_flowers = Ingredient_item(item_id = 16, recipe_id = 6, quantity = 8)
@@ -121,8 +122,8 @@ with Session(engine) as session:
     all_lists = [list_1, list_2]
 
     # list items
-    list_butter = List_item(list_id = 1, item_id = 4)
-    list_limes = List_item(list_id = 1, item_id = 19)
+    list_butter = List_item(list_id = 1, item_id = 4, quantity = 1)
+    list_limes = List_item(list_id = 1, item_id = 19, quantity = 1)
     
     all_list_items = [list_butter, list_limes]
 

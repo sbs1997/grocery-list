@@ -66,7 +66,8 @@ def main():
                 thu = Meal_plan(day = "Thursday", week_id = new_week.id)
                 fri = Meal_plan(day = "Friday", week_id = new_week.id)
                 sat = Meal_plan(day = "Saturday", week_id = new_week.id)
-                session.add_all([sun, mon, tue, wed, thu, fri, sat])
+                list = List(week_id = new_week.id)
+                session.add_all([sun, mon, tue, wed, thu, fri, sat, list])
                 session.commit()
                 view_week_menu()
                 
@@ -79,22 +80,134 @@ def main():
             questions = [
                 inquirer.List(
                     "meal_plan",
-                    message = "Pick a day to edit",
-                    choices = week.meal_plans
+                    message = "Pick a day to edit it, or choose another option",
+                    choices = week.meal_plans + ["Automatically add items to the grocery list", "Edit grocery list", "View grocery list", "Add list to pantry", "Back"]
                 )
             ]
             answer = inquirer.prompt(questions)
-            meal_plan_menu(answer["meal_plan"])
+            if answer["meal_plan"] == "Back":
+                view_week_menu()
+            if answer["meal_plan"] == "Automatically add items to the grocery list":
+                create_list(week)
+            elif answer["meal_plan"] == "Edit grocery list":
+                edit_list(week)
+            elif answer["meal_plan"] == "View grocery list":
+                print(week.list[0].pretty())
+                week_display(week)
+            elif answer["meal_plan"] == "Add list to pantry":
+                update_pantry(week.list[0])
+            else:
+                meal_plan_menu(answer["meal_plan"])
+
+###############################grocery list stuff##########################################
+        # automatically add items to your grocery list for the meals you have planned that week, taking into account your pantry
+        def create_list(week):
+            week_list = week.list[0]
+            for meal_plan in week.meal_plans:
+                for meal_plan_recipe in meal_plan.meal_plan_recipes:
+                    for ingredient in meal_plan_recipe.recipe.ingredient_items:
+                        ing_list_item = session.query(List_item).filter(List_item.item_id == ingredient.item_id and List_item.list_id == week.list.id).first()
+                        # make the list item if it doesn't exist yet
+                        if ing_list_item is None:
+                            ing_list_item = List_item(item_id = ingredient.item_id, list_id = week_list.id, quantity = 0)
+                            session.add(ing_list_item)
+                            session.commit()
+                        # updates the list item quantitiy
+                        ing_list_item.quantity += ingredient.quantity
+                        session.commit()
+            # checks each list item against the pantry
+            for list_item in week_list.list_items:
+                pantry_item = session.query(Pantry_item).filter(Pantry_item.item_id==list_item.item_id).first()
+                if pantry_item is not None:
+                    if pantry_item.quantity >= list_item.quantity:
+                        session.delete(list_item)
+                        session.commit()
+                    elif pantry_item.quantity < list_item.quantity:
+                        list_item.quantity -= pantry_item.quantity
+                        session.commit()
+            print(week_list.pretty())
+            week_display(week)
+        
+        # menu for directly editing the list
+        def edit_list(week):
+            week_list = session.query(List).filter(List.week_id == week.id).first()
+            questions = [
+                inquirer.List(
+                    "option",
+                    message = "select an item to delete or change the quantity",
+                    choices = week_list.list_items + ["Back", "Clear"]
+                )
+            ]
+            answer = inquirer.prompt(questions)
+            if answer["option"] == "Back":
+                week_display(week)
+            elif answer["option"] == "Clear":
+                for list_item in week_list.list_items:
+                    session.delete(list_item)
+                session.commit()
+                print(week.list[0].pretty())
+                week_display(week)
+            else:
+                edit_list_item(answer["option"])
+
+        # follow up to edit an item
+        def edit_list_item(list_item):
+            questions = [
+                inquirer.List(
+                    "option",
+                    message = str(list_item),
+                    choices = ["Edit quantity", "Delete"]
+                )
+            ]
+            answer = inquirer.prompt(questions)
+            if answer["option"] == "Edit quantity":
+                new_quant = input("New Quantity: ")
+                list_item.quantity = new_quant
+                session.commit()
+                edit_list(list_item.list.week)
+            elif answer["option"] == "Delete":
+                week = list_item.list.week
+                session.delete(list_item)
+                session.commit()
+                edit_list(week)
+
+        # automatically add the items on the list to your pantry
+        def update_pantry(list):
+            for list_item in list.list_items:
+                pantry_item = session.query(Pantry_item).filter(Pantry_item.item_id == list_item.item_id).first()
+                if pantry_item is None:
+                    pantry_item = Pantry_item(item_id = list_item.item_id, quantity = 0)
+                    session.add(pantry_item)
+                    session.commit()
+                pantry_item.quantity+=list_item.quantity
+                session.commit()
+            questions = [
+                inquirer.List(
+                    "option",
+                    message = "Go to",
+                    choices = ["Pantry", "Week of meal plans"]
+                )
+            ]
+            answer = inquirer.prompt(questions)
+            if answer["option"] == "Week of meal plans":
+                week_display(list.week)
+            if answer["option"] == "Pantry":
+                view_pantry()
+
+####################################### end of list stuff ##########################################
 
         # view the meal plan for a specific day
         def meal_plan_menu(meal_plan):
+            meal_plan_recipes = ""
             for meal_plan_recipe in meal_plan.meal_plan_recipes:
-                print(f"Meal Plan for {meal_plan.date()} \n" + str(meal_plan_recipe.recipe))
+                meal_plan_recipes += str(meal_plan_recipe.recipe)
+                meal_plan_recipes += "\n"
+            print(f"Meal Plan for {meal_plan.date()} \n" + str(meal_plan_recipes))
             questions = [
                 inquirer.List(
                     "option",
                     message = "select an option",
-                    choices = ["Edit", "Home Menu", "Week View"]
+                    choices = ["Edit", "Home Menu", "Week View", "Make the meal and update your pantry"]
                 )
             ]
             answer = inquirer.prompt(questions)
@@ -102,8 +215,42 @@ def main():
                 week_display(meal_plan.week)
             elif answer["option"] == "Home Menu":
                 home_menu()
+            elif answer["option"] == "Make the meal and update your pantry":
+                make_meal(meal_plan)
             elif answer["option"] == "Edit":
                 edit_plan(meal_plan)
+
+        # make a meal and update the pantry
+        def make_meal(meal_plan):
+            for meal_plan_recipe in meal_plan.meal_plan_recipes:
+                for ingredient in meal_plan_recipe.recipe.ingredient_items:
+                    pantry_item = session.query(Pantry_item).filter(ingredient.item_id == Pantry_item.item_id).first()
+                    if pantry_item is None:
+                        print(f"{ingredient.item} wasn't in your pantry!")
+                    elif pantry_item.quantity > ingredient.quantity:
+                        pantry_item.quantity -= ingredient.quantity
+                        session.commit()
+                        print(f"{pantry_item} left in your pantry")
+                    elif pantry_item.quantity == ingredient.quantity:
+                        print(f"You've used up all of your {ingredient.item}")
+                        session.delete(pantry_item)
+                        session.commit()
+                    elif pantry_item.quantity < ingredient.quantity:
+                        print(f"You didn't have enought {ingredient.item}, so I've removed everything there was from your pantry")
+                        session.delete(pantry_item)
+                        session.commit()
+            questions = [
+                inquirer.List(
+                    "option",
+                    message = "Go to",
+                    choices = ["Pantry", "Meal Plan"]
+                )
+            ]
+            answer = inquirer.prompt(questions)
+            if answer["option"] == "Meal Plan":
+                meal_plan_menu(meal_plan)
+            if answer["option"] == "Pantry":
+                view_pantry()
 
         # menu to edit a meal plan
         def edit_plan(meal_plan):
@@ -158,14 +305,14 @@ def main():
 
         
 
-######################## full CRUD on the pantry###########################
+###################################### full CRUD on the pantry###################################
         # view the whole pantry
         def view_pantry():
             pantry = session.query(Pantry_item).all()
             questions = [
                 inquirer.List(
                     "option",
-                    message = "Choose a recipe to add",
+                    message = "Choose a pantry item to add, or select an item to edit it",
                     choices = pantry + ["Add new pantry item", "Back"]
                 )
             ]
@@ -179,8 +326,6 @@ def main():
         
         # update or delete a pantry item
         def edit_pantry(pantry_item):
-            print(pantry_item)
-            print(type(pantry_item))
             questions = [
                 inquirer.List(
                     "option",
@@ -225,7 +370,7 @@ def main():
                 print("Please enter an integer")
                 new_pantry()
 
-########################## Full recipe crud #####################
+###################################### Full recipe crud ######################################
         # view all the recipes
         def view_recipes():
             cookbook = session.query(Recipe).all()

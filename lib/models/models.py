@@ -29,7 +29,7 @@ class Pantry_item(Base):
     quantity = Column(Integer)
 
     def __repr__(self):
-        return f"{self.quantity} of {self.item}"
+        return f"{self.quantity} {self.item}"
 
 # an item on the list
 class List_item(Base):
@@ -42,6 +42,9 @@ class List_item(Base):
     list = relationship("List", back_populates="list_items")
     quantity = Column(Integer)
 
+    def __repr__(self):
+        return f"{self.quantity} {self.item.name}"
+
 # a grocery list of items to buy
 class List(Base):
     __tablename__ = "lists"
@@ -50,6 +53,14 @@ class List(Base):
     week_id = Column(Integer, ForeignKey('weeks.id'))
     week = relationship("Week", back_populates="list")
     list_items = relationship("List_item",  back_populates="list")
+
+    def pretty(self):
+        string = ""
+        for list_item in self.list_items:
+            string += str(list_item)+ "\n"
+        return f"List for the week of {self.week.start_week}\n----------------------------------------------\n{string}"
+    def __repr__(self):
+        return f"{self.list_items}"
 # the week for the meal plans to be used
 class Week(Base):
     __tablename__ = "weeks"
@@ -127,6 +138,8 @@ class Recipe(Base):
     
     def __repr__(self):
         return (f"{self.name}\n---------------------------------------------------\n({self.cuisine} {self.type})\n\n{self.pretty_ingredients()}\n\n{self.instructions}\n")
+        # return (f"{self.name}\n---------------------------------------------------\n({self.cuisine} {self.type})\n\n{self.ingredient_items}\n\n{self.instructions}\n")
+    
 
 # an ingredient in a recipe
 class Ingredient_item(Base):
@@ -140,4 +153,4 @@ class Ingredient_item(Base):
     quantity = Column(Integer)
 
     def __repr__(self):
-        return f"{self.quantity} of {self.item.name}"
+        return f"{self.quantity} {self.item.name}"
