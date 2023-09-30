@@ -103,10 +103,12 @@ def main():
         # automatically add items to your grocery list for the meals you have planned that week, taking into account your pantry
         def create_list(week):
             week_list = week.list[0]
+            print(week.list[0].id)
+            print(week)
             for meal_plan in week.meal_plans:
                 for meal_plan_recipe in meal_plan.meal_plan_recipes:
                     for ingredient in meal_plan_recipe.recipe.ingredient_items:
-                        ing_list_item = session.query(List_item).filter(List_item.item_id == ingredient.item_id and List_item.list_id == week.list.id).first()
+                        ing_list_item = session.query(List_item).filter(List_item.item_id == ingredient.item_id).filter(List_item.list_id == week_list.id).first()
                         # make the list item if it doesn't exist yet
                         if ing_list_item is None:
                             ing_list_item = List_item(item_id = ingredient.item_id, list_id = week_list.id, quantity = 0)
@@ -135,7 +137,7 @@ def main():
                 inquirer.List(
                     "option",
                     message = "select an item to delete or change the quantity",
-                    choices = week_list.list_items + ["Back", "Clear"]
+                    choices = week_list.list_items + ["Back", "Add new item","Clear"]
                 )
             ]
             answer = inquirer.prompt(questions)
@@ -147,9 +149,29 @@ def main():
                 session.commit()
                 print(week.list[0].pretty())
                 week_display(week)
+            elif answer["option"]== "Add new item":
+                new_list_item(week.list[0], week)
             else:
                 edit_list_item(answer["option"])
 
+        #add an item to a list 
+        def new_list_item(parent_list, week):
+            new_name = input("What is the name of the item you want to add to your list? ")
+            new_item = session.query(Item).filter(Item.name == new_name.title()).first()
+            if new_item is None:
+                # if an item does not exist make the item
+                new_item = Item(name = new_name.title())
+                session.add(new_item)
+                session.commit()
+            new_quant = input("Enter a quantity ")
+            if new_quant.isnumeric():
+                new_list_item = List_item(item_id = new_item.id, quantity = int(new_quant), list_id = parent_list.id)
+                session.add(new_list_item)
+                session.commit()
+                edit_list(week)
+            else:
+                print("Please enter an integer")
+                new_list_item()
         # follow up to edit an item
         def edit_list_item(list_item):
             questions = [
